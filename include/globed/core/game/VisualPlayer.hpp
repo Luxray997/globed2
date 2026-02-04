@@ -107,7 +107,8 @@ private:
     void hideRobotFire();
     void showRobotFire();
 
-    bool hideNearby(GJBaseGameLayer* gjbgl);
+    bool hideNearby(GJBaseGameLayer* gjbgl) const;
+    uint8_t calculatePlayerOpacity() const;
 
     void updatePlayerObjectIcons(bool skipFrames);
     bool isPlayerNearby(const PlayerObjectData& data, const GameCameraState& camState);
