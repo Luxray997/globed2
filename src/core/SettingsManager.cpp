@@ -61,6 +61,7 @@ SettingsManager::SettingsManager() {
     this->registerSetting("core.player.rotate-names", true);
     this->registerSetting("core.player.death-effects", true);
     this->registerSetting("core.player.default-death-effects", false);
+    this->registerSetting("core.player.deathlink-delay", false);
     // invisible settings
     this->registerSetting("core.player.blacklisted-players", matjson::Value::array());
     this->registerSetting("core.player.whitelisted-players", matjson::Value::array());

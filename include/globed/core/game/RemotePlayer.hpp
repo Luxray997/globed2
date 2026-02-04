@@ -36,8 +36,6 @@ public:
     PlayerDisplayData& displayData();
     int id() const;
     bool isLocal() const;
-    
-    const PlayerState& getState() const;
 
     bool isPlayer1Culled();
     bool isPlayer2Culled();

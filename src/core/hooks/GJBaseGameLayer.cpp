@@ -366,6 +366,47 @@ void GlobedGJBGL::selUpdate(float tsdt) {
 
         OutFlags flags{};
         auto& vstate = fields.m_interpolator.getPlayerState(playerId, flags);
+        
+        // If deathlink delay is enabled, clamp players ahead to local player position
+        if (g_settings.deathlinkDelay && RoomManager::get().getSettings().deathlink) {
+            auto localState = this->getPlayerState();
+            
+            // Check if remote player is ahead (within reasonable distance)
+            // Use position for classic levels, progress for platformer
+            if (m_level->isPlatformer()) {
+                // For platformer, use percentage-based comparison
+                if (vstate.percentage > localState.percentage) {
+                    // Clamp to local player's progress
+                    vstate.percentage = localState.percentage;
+                }
+            } else {
+                // For classic levels, use X position
+                if (vstate.player1 && localState.player1) {
+                    float localX = m_player1->getPosition().x;
+                    float remoteX = vstate.player1->position.x;
+                    
+                    // If remote player is ahead (within ~1-2 seconds worth of distance)
+                    // Typical speeds are ~300-500 units/second, so check within ~500-1000 units
+                    constexpr float MAX_DELAY_DISTANCE = 1000.0f;
+                    if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
+                        // Clamp to local player position
+                        vstate.player1->position.x = localX;
+                    }
+                }
+                
+                // Same for player 2 in dual mode
+                if (vstate.player2 && localState.player2) {
+                    float localX = m_player2->getPosition().x;
+                    float remoteX = vstate.player2->position.x;
+                    
+                    constexpr float MAX_DELAY_DISTANCE = 1000.0f;
+                    if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
+                        vstate.player2->position.x = localX;
+                    }
+                }
+            }
+        }
+        
         player->update(vstate, camState, flags, fields.m_playersHidden);
 
         // if we don't know player's data yet (username, icons, etc.), request it

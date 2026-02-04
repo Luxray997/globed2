@@ -25,6 +25,7 @@ struct CachedSettings {
     bool dualName = globed::setting<bool>("core.player.dual-name");
     bool rotateNames = globed::setting<bool>("core.player.rotate-names");
     bool defaultDeathEffects = globed::setting<bool>("core.player.default-death-effects");
+    bool deathlinkDelay = globed::setting<bool>("core.player.deathlink-delay");
     float playerOpacity = globed::setting<float>("core.player.opacity");
     float nameOpacity = globed::setting<float>("core.player.name-opacity");
 
