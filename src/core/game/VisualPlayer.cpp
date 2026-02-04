@@ -447,26 +447,10 @@ bool VisualPlayer::hideNearby(GJBaseGameLayer* gjbgl) {
         : g_settings.hideNearbyClassic;
 }
 
-PlayerIconData& VisualPlayer::icons() {
-    return m_remotePlayer->m_data.icons;
-}
-
-PlayerDisplayData& VisualPlayer::displayData() {
-    return m_remotePlayer->m_data;
-}
-
-void VisualPlayer::setStickyState(bool p1, bool sticky) {
-    if (p1) {
-        m_p1Sticky = sticky;
-    } else {
-        m_p2Sticky = sticky;
-    }
-}
-
-void VisualPlayer::updateOpacity() {
+uint8_t VisualPlayer::calculatePlayerOpacity() const {
     float mult = 1.f;
 
-    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
+    bool hideNearby_ = const_cast<VisualPlayer*>(this)->hideNearby(GlobedGJBGL::get(m_gameLayer));
 
     if (hideNearby_) {
         // calculate distance
@@ -484,7 +468,27 @@ void VisualPlayer::updateOpacity() {
         mult = distance / 150.f;
     }
 
-    uint8_t opacity = static_cast<uint8_t>(g_settings.playerOpacity * mult * 255.f);
+    return static_cast<uint8_t>(g_settings.playerOpacity * mult * 255.f);
+}
+
+PlayerIconData& VisualPlayer::icons() {
+    return m_remotePlayer->m_data.icons;
+}
+
+PlayerDisplayData& VisualPlayer::displayData() {
+    return m_remotePlayer->m_data;
+}
+
+void VisualPlayer::setStickyState(bool p1, bool sticky) {
+    if (p1) {
+        m_p1Sticky = sticky;
+    } else {
+        m_p2Sticky = sticky;
+    }
+}
+
+void VisualPlayer::updateOpacity() {
+    uint8_t opacity = this->calculatePlayerOpacity();
 
     this->setOpacity(opacity);
     m_spiderSprite->GJRobotSprite::setOpacity(opacity);
@@ -506,6 +510,7 @@ void VisualPlayer::updateOpacity() {
     }
 
     // set name opacity as well if hide nearby is enabled
+    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
     if (hideNearby_) {
         m_nameLabel->updateOpacity(opacity);
 
@@ -768,20 +773,7 @@ void VisualPlayer::handleSpiderTp(const SpiderTeleportData& tp) {
     size_t countAfter = arr ? arr->count() : 0;
 
     // Calculate opacity based on player settings
-    float mult = 1.f;
-    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
-    if (hideNearby_) {
-        auto p1pos = m_gameLayer->m_player1->getPosition();
-        auto p2pos = m_gameLayer->m_player2->getPosition();
-        auto ourPos = m_prevPosition;
-        float distance = std::min(
-            cocos2d::ccpDistance(ourPos, p1pos),
-            cocos2d::ccpDistance(ourPos, p2pos)
-        );
-        distance = std::clamp(distance, 0.f, 150.f);
-        mult = distance / 150.f;
-    }
-    uint8_t opacity = static_cast<uint8_t>(g_settings.playerOpacity * mult * 255.f);
+    uint8_t opacity = this->calculatePlayerOpacity();
 
     for (size_t i = countBefore; i < countAfter; i++) {
         auto node = static_cast<CCNode*>(arr->objectAtIndex(i));
