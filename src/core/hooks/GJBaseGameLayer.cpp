@@ -346,6 +346,9 @@ void GlobedGJBGL::selUpdate(float tsdt) {
     fields.m_unknownPlayers.clear();
 
     auto camState = this->getCameraState();
+    
+    // Cache deathlink settings for this update cycle
+    bool isDeathlinkDelayEnabled = g_settings.deathlinkDelay && rm.getSettings().deathlink;
 
     for (auto it = fields.m_players.begin(); it != fields.m_players.end();) {
         int playerId = it->first;
@@ -366,6 +369,33 @@ void GlobedGJBGL::selUpdate(float tsdt) {
 
         OutFlags flags{};
         auto& vstate = fields.m_interpolator.getPlayerState(playerId, flags);
+        
+        // If deathlink delay is enabled, clamp players ahead to local player position
+        if (isDeathlinkDelayEnabled && !m_level->isPlatformer()) {
+            // Maximum distance ahead to apply clamping (~2-3 seconds of gameplay)
+            // Typical speeds are ~300-500 units/second, so 1000 units = 2-3.3 seconds
+            constexpr float MAX_DELAY_DISTANCE = 1000.0f;
+            constexpr float VISUAL_OFFSET = 10.0f; // Small offset to keep players visually distinct
+            
+            // Helper lambda to clamp remote player position if ahead
+            auto clampRemotePlayerIfAhead = [&](std::optional<PlayerObjectData>& playerData, PlayerObject* localPlayer) {
+                if (playerData && localPlayer) {
+                    float localX = localPlayer->getPosition().x;
+                    float remoteX = playerData->position.x;
+                    
+                    // If remote player is ahead within the delay distance
+                    if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
+                        // Clamp to slightly behind local player for visual distinction
+                        playerData->position.x = localX - VISUAL_OFFSET;
+                    }
+                }
+            };
+            
+            // Apply clamping for both players in dual mode
+            clampRemotePlayerIfAhead(vstate.player1, m_player1);
+            clampRemotePlayerIfAhead(vstate.player2, m_player2);
+        }
+        
         player->update(vstate, camState, flags, fields.m_playersHidden);
 
         // if we don't know player's data yet (username, icons, etc.), request it
