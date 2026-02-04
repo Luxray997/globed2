@@ -371,37 +371,33 @@ void GlobedGJBGL::selUpdate(float tsdt) {
         if (g_settings.deathlinkDelay && RoomManager::get().getSettings().deathlink) {
             auto localState = this->getPlayerState();
             
-            // Check if remote player is ahead (within reasonable distance)
-            // Use position for classic levels, progress for platformer
-            if (m_level->isPlatformer()) {
-                // For platformer, use percentage-based comparison
-                if (vstate.percentage > localState.percentage) {
-                    // Clamp to local player's progress
-                    vstate.percentage = localState.percentage;
-                }
-            } else {
-                // For classic levels, use X position
-                if (vstate.player1 && localState.player1) {
+            // Maximum distance ahead to apply clamping (~1-2 seconds of gameplay)
+            // Typical speeds are ~300-500 units/second
+            constexpr float MAX_DELAY_DISTANCE = 1000.0f;
+            constexpr float VISUAL_OFFSET = 10.0f; // Small offset to keep players visually distinct
+            
+            // Check if remote player is ahead
+            // For classic levels, use X position; for platformer, positions are used differently
+            if (!m_level->isPlatformer()) {
+                // For classic levels, clamp X position
+                if (vstate.player1 && m_player1) {
                     float localX = m_player1->getPosition().x;
                     float remoteX = vstate.player1->position.x;
                     
-                    // If remote player is ahead (within ~1-2 seconds worth of distance)
-                    // Typical speeds are ~300-500 units/second, so check within ~500-1000 units
-                    constexpr float MAX_DELAY_DISTANCE = 1000.0f;
+                    // If remote player is ahead within the delay distance
                     if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
-                        // Clamp to local player position
-                        vstate.player1->position.x = localX;
+                        // Clamp to slightly behind local player for visual distinction
+                        vstate.player1->position.x = localX - VISUAL_OFFSET;
                     }
                 }
                 
                 // Same for player 2 in dual mode
-                if (vstate.player2 && localState.player2) {
+                if (vstate.player2 && m_player2) {
                     float localX = m_player2->getPosition().x;
                     float remoteX = vstate.player2->position.x;
                     
-                    constexpr float MAX_DELAY_DISTANCE = 1000.0f;
                     if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
-                        vstate.player2->position.x = localX;
+                        vstate.player2->position.x = localX - VISUAL_OFFSET;
                     }
                 }
             }
