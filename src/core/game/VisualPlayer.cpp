@@ -436,7 +436,7 @@ void VisualPlayer::updateLerpTrajectory(const PlayerObjectData& data) {
     }
 }
 
-bool VisualPlayer::hideNearby(GJBaseGameLayer* gjbgl) {
+bool VisualPlayer::hideNearby(GJBaseGameLayer* gjbgl) const {
     // if this is the local player, do nothing
     if (m_isLocalPlayer) {
         return false;
@@ -450,7 +450,7 @@ bool VisualPlayer::hideNearby(GJBaseGameLayer* gjbgl) {
 uint8_t VisualPlayer::calculatePlayerOpacity() const {
     float mult = 1.f;
 
-    bool hideNearby_ = const_cast<VisualPlayer*>(this)->hideNearby(GlobedGJBGL::get(m_gameLayer));
+    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
 
     if (hideNearby_) {
         // calculate distance
