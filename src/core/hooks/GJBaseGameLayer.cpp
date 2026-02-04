@@ -346,6 +346,9 @@ void GlobedGJBGL::selUpdate(float tsdt) {
     fields.m_unknownPlayers.clear();
 
     auto camState = this->getCameraState();
+    
+    // Cache deathlink settings for this update cycle
+    bool isDeathlinkDelayEnabled = g_settings.deathlinkDelay && rm.getSettings().deathlink;
 
     for (auto it = fields.m_players.begin(); it != fields.m_players.end();) {
         int playerId = it->first;
@@ -368,39 +371,29 @@ void GlobedGJBGL::selUpdate(float tsdt) {
         auto& vstate = fields.m_interpolator.getPlayerState(playerId, flags);
         
         // If deathlink delay is enabled, clamp players ahead to local player position
-        if (g_settings.deathlinkDelay && RoomManager::get().getSettings().deathlink) {
-            auto localState = this->getPlayerState();
-            
+        if (isDeathlinkDelayEnabled && !m_level->isPlatformer()) {
             // Maximum distance ahead to apply clamping (~1-2 seconds of gameplay)
             // Typical speeds are ~300-500 units/second
             constexpr float MAX_DELAY_DISTANCE = 1000.0f;
             constexpr float VISUAL_OFFSET = 10.0f; // Small offset to keep players visually distinct
             
-            // Check if remote player is ahead
-            // For classic levels, use X position; for platformer, positions are used differently
-            if (!m_level->isPlatformer()) {
-                // For classic levels, clamp X position
-                if (vstate.player1 && m_player1) {
-                    float localX = m_player1->getPosition().x;
-                    float remoteX = vstate.player1->position.x;
+            // Helper lambda to clamp player position if ahead
+            auto clampIfAhead = [&](std::optional<PlayerObjectData>& playerData, PlayerObject* localPlayer) {
+                if (playerData && localPlayer) {
+                    float localX = localPlayer->getPosition().x;
+                    float remoteX = playerData->position.x;
                     
                     // If remote player is ahead within the delay distance
                     if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
                         // Clamp to slightly behind local player for visual distinction
-                        vstate.player1->position.x = localX - VISUAL_OFFSET;
+                        playerData->position.x = localX - VISUAL_OFFSET;
                     }
                 }
-                
-                // Same for player 2 in dual mode
-                if (vstate.player2 && m_player2) {
-                    float localX = m_player2->getPosition().x;
-                    float remoteX = vstate.player2->position.x;
-                    
-                    if (remoteX > localX && (remoteX - localX) < MAX_DELAY_DISTANCE) {
-                        vstate.player2->position.x = localX - VISUAL_OFFSET;
-                    }
-                }
-            }
+            };
+            
+            // Apply clamping for both players in dual mode
+            clampIfAhead(vstate.player1, m_player1);
+            clampIfAhead(vstate.player2, m_player2);
         }
         
         player->update(vstate, camState, flags, fields.m_playersHidden);
