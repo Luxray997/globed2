@@ -8,6 +8,9 @@ using namespace geode::prelude;
 
 namespace globed {
 
+// Maximum value for player progress percentage (uint16_t max = 100%)
+constexpr float MAX_PROGRESS_VALUE = 65535.0f;
+
 namespace {
 
 class DelayedDeathSchedule : public CCObject {
@@ -16,7 +19,6 @@ public:
         auto ret = new DelayedDeathSchedule;
         ret->m_gjbgl = gjbgl;
         ret->autorelease();
-        ret->retain(); // Retain to prevent premature deallocation
         CCScheduler::get()->scheduleSelector(
             schedule_selector(DelayedDeathSchedule::invoke), 
             ret, 
@@ -42,9 +44,6 @@ private:
         if (m_gjbgl && m_gjbgl->active()) {
             m_gjbgl->killLocalPlayer();
         }
-        
-        // Release after execution
-        this->release();
     }
 };
 
@@ -77,11 +76,11 @@ void DeathlinkModule::onPlayerDeath(GlobedGJBGL* gjbgl, RemotePlayer* player, co
     // Check if the remote player is ahead of the local player
     if (remoteProgress > localProgress) {
         // Player is ahead, calculate delay based on progress difference
-        // Percentage is stored as uint16_t with 65535 representing 100% progress
-        float progressDiff = (remoteProgress - localProgress) / 65535.0f; // Normalize to 0-1
+        // Percentage is stored as uint16_t with MAX_PROGRESS_VALUE representing 100% progress
+        float progressDiff = (remoteProgress - localProgress) / MAX_PROGRESS_VALUE; // Normalize to 0-1
         
         // Scale delay: 0.5 to 1.5 seconds based on progress difference
-        // For every 10% ahead, add 0.2 seconds, capped at 1.5 seconds
+        // progressDiff * 2.0 means 2 seconds per 100% difference (e.g., 0.1 difference = 0.2s added)
         float delay = 0.5f + (progressDiff * 2.0f);
         delay = std::min(delay, 1.5f);
         
