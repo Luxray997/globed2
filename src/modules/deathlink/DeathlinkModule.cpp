@@ -16,9 +16,13 @@ namespace {
 class DelayedDeathSchedule : public CCObject {
 public:
     static DelayedDeathSchedule* create(GlobedGJBGL* gjbgl, float delay) {
+        if (!gjbgl) return nullptr;
+        
         auto ret = new DelayedDeathSchedule;
         ret->m_gjbgl = gjbgl;
         ret->autorelease();
+        // CCScheduler will retain this object until the callback executes or is unscheduled
+        // The 'false' parameter means the callback should only execute once (not repeat)
         CCScheduler::get()->scheduleSelector(
             schedule_selector(DelayedDeathSchedule::invoke), 
             ret, 
