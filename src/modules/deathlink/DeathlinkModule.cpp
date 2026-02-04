@@ -16,6 +16,7 @@ public:
         auto ret = new DelayedDeathSchedule;
         ret->m_gjbgl = gjbgl;
         ret->autorelease();
+        ret->retain(); // Retain to prevent premature deallocation
         CCScheduler::get()->scheduleSelector(
             schedule_selector(DelayedDeathSchedule::invoke), 
             ret, 
@@ -31,9 +32,19 @@ private:
     DelayedDeathSchedule() {}
 
     void invoke(float dt) {
-        if (m_gjbgl) {
+        // Unschedule to prevent multiple invocations
+        CCScheduler::get()->unscheduleSelector(
+            schedule_selector(DelayedDeathSchedule::invoke), 
+            this
+        );
+        
+        // Kill the local player if the game layer is still valid and active
+        if (m_gjbgl && m_gjbgl->active()) {
             m_gjbgl->killLocalPlayer();
         }
+        
+        // Release after execution
+        this->release();
     }
 };
 
@@ -66,13 +77,13 @@ void DeathlinkModule::onPlayerDeath(GlobedGJBGL* gjbgl, RemotePlayer* player, co
     // Check if the remote player is ahead of the local player
     if (remoteProgress > localProgress) {
         // Player is ahead, calculate delay based on progress difference
+        // Percentage is stored as uint16_t with 65535 representing 100% progress
         float progressDiff = (remoteProgress - localProgress) / 65535.0f; // Normalize to 0-1
         
         // Scale delay: 0.5 to 1.5 seconds based on progress difference
         // For every 10% ahead, add 0.2 seconds, capped at 1.5 seconds
         float delay = 0.5f + (progressDiff * 2.0f);
         delay = std::min(delay, 1.5f);
-        delay = std::max(delay, 0.5f); // Minimum 0.5 seconds
         
         // Schedule delayed death
         DelayedDeathSchedule::create(gjbgl, delay);
