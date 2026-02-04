@@ -450,9 +450,9 @@ bool VisualPlayer::hideNearby(GJBaseGameLayer* gjbgl) const {
 uint8_t VisualPlayer::calculatePlayerOpacity() const {
     float mult = 1.f;
 
-    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
+    bool shouldHideNearby = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
 
-    if (hideNearby_) {
+    if (shouldHideNearby) {
         // calculate distance
         auto p1pos = m_gameLayer->m_player1->getPosition();
         auto p2pos = m_gameLayer->m_player2->getPosition();
@@ -510,8 +510,8 @@ void VisualPlayer::updateOpacity() {
     }
 
     // set name opacity as well if hide nearby is enabled
-    bool hideNearby_ = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
-    if (hideNearby_) {
+    bool shouldHideNearby = this->hideNearby(GlobedGJBGL::get(m_gameLayer));
+    if (shouldHideNearby) {
         m_nameLabel->updateOpacity(opacity);
 
         if (m_emoteBubble) {
