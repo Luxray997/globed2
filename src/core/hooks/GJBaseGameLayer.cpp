@@ -372,13 +372,13 @@ void GlobedGJBGL::selUpdate(float tsdt) {
         
         // If deathlink delay is enabled, clamp players ahead to local player position
         if (isDeathlinkDelayEnabled && !m_level->isPlatformer()) {
-            // Maximum distance ahead to apply clamping (~1-2 seconds of gameplay)
-            // Typical speeds are ~300-500 units/second
+            // Maximum distance ahead to apply clamping (~2-3 seconds of gameplay)
+            // Typical speeds are ~300-500 units/second, so 1000 units = 2-3.3 seconds
             constexpr float MAX_DELAY_DISTANCE = 1000.0f;
             constexpr float VISUAL_OFFSET = 10.0f; // Small offset to keep players visually distinct
             
-            // Helper lambda to clamp player position if ahead
-            auto clampIfAhead = [&](std::optional<PlayerObjectData>& playerData, PlayerObject* localPlayer) {
+            // Helper lambda to clamp remote player position if ahead
+            auto clampRemotePlayerIfAhead = [&](std::optional<PlayerObjectData>& playerData, PlayerObject* localPlayer) {
                 if (playerData && localPlayer) {
                     float localX = localPlayer->getPosition().x;
                     float remoteX = playerData->position.x;
@@ -392,8 +392,8 @@ void GlobedGJBGL::selUpdate(float tsdt) {
             };
             
             // Apply clamping for both players in dual mode
-            clampIfAhead(vstate.player1, m_player1);
-            clampIfAhead(vstate.player2, m_player2);
+            clampRemotePlayerIfAhead(vstate.player1, m_player1);
+            clampRemotePlayerIfAhead(vstate.player2, m_player2);
         }
         
         player->update(vstate, camState, flags, fields.m_playersHidden);
