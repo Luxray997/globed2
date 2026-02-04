@@ -231,6 +231,10 @@ bool RemotePlayer::isLocal() const {
     return m_localPlayer;
 }
 
+const PlayerState& RemotePlayer::getState() const {
+    return m_state;
+}
+
 bool RemotePlayer::isPlayer1Culled() {
     return m_player1Culled;
 }

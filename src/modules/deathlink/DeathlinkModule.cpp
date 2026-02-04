@@ -8,6 +8,37 @@ using namespace geode::prelude;
 
 namespace globed {
 
+namespace {
+
+class DelayedDeathSchedule : public CCObject {
+public:
+    static DelayedDeathSchedule* create(GlobedGJBGL* gjbgl, float delay) {
+        auto ret = new DelayedDeathSchedule;
+        ret->m_gjbgl = gjbgl;
+        ret->autorelease();
+        CCScheduler::get()->scheduleSelector(
+            schedule_selector(DelayedDeathSchedule::invoke), 
+            ret, 
+            delay, 
+            false
+        );
+        return ret;
+    }
+
+private:
+    GlobedGJBGL* m_gjbgl;
+
+    DelayedDeathSchedule() {}
+
+    void invoke(float dt) {
+        if (m_gjbgl) {
+            m_gjbgl->killLocalPlayer();
+        }
+    }
+};
+
+}
+
 DeathlinkModule::DeathlinkModule() = default;
 
 void DeathlinkModule::onModuleInit() {
@@ -24,6 +55,31 @@ void DeathlinkModule::onJoinLevel(GlobedGJBGL* gjbgl, GJGameLevel* level, bool e
 void DeathlinkModule::onPlayerDeath(GlobedGJBGL* gjbgl, RemotePlayer* player, const PlayerDeath& death) {
     if (!death.isReal || !player || !player->isTeammate()) return;
 
+    // Get local player's progress
+    auto localState = gjbgl->getPlayerState();
+    auto localProgress = localState.percentage;
+    
+    // Get remote player's progress
+    auto& remoteState = player->getState();
+    auto remoteProgress = remoteState.percentage;
+    
+    // Check if the remote player is ahead of the local player
+    if (remoteProgress > localProgress) {
+        // Player is ahead, calculate delay based on progress difference
+        float progressDiff = (remoteProgress - localProgress) / 65535.0f; // Normalize to 0-1
+        
+        // Scale delay: 0.5 to 1.5 seconds based on progress difference
+        // For every 10% ahead, add 0.2 seconds, capped at 1.5 seconds
+        float delay = 0.5f + (progressDiff * 2.0f);
+        delay = std::min(delay, 1.5f);
+        delay = std::max(delay, 0.5f); // Minimum 0.5 seconds
+        
+        // Schedule delayed death
+        DelayedDeathSchedule::create(gjbgl, delay);
+        return;
+    }
+    
+    // If player is not ahead, kill immediately
     gjbgl->killLocalPlayer();
 }
 
